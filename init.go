@@ -31,7 +31,13 @@ func handleInitAction(c *cli.Context) error {
 		}
 	}
 
-	err = ioutil.WriteFile(path.Join(jayPath, "jrnl.gpg"), []byte{}, 006)
+	err = ioutil.WriteFile(path.Join(jayPath, "jrnl.gpg"), []byte{}, 0006)
+	check(err)
+
+	salt := make([]byte, 16)
+	_, err = rand.Read(salt)
+	check(err)
+	err = ioutil.WriteFile(path.Join(jayPath, "salt.bin"), salt, 0666)
 	check(err)
 
 	passphrase := promptPassphrase() // prompt user before (slow) key generation

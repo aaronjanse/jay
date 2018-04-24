@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/howeyc/gopass"
 	"golang.org/x/crypto/pbkdf2"
@@ -18,9 +19,9 @@ func promptPassphrase() []byte {
 	return pass
 }
 
-var salt = []byte("salt here")
-
 func getKey(passphrase []byte) []byte {
+	salt, err := ioutil.ReadFile(path.Join(jayPath, "salt.bin"))
+	check(err)
 	return pbkdf2.Key([]byte(passphrase), salt, 4096, 32, sha256.New)
 }
 
