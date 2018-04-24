@@ -7,8 +7,10 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/binary"
+	"fmt"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli"
@@ -22,10 +24,19 @@ func handleAddAction(c *cli.Context) error {
 		text += scanner.Text() + "\n"
 	}
 
+	fmt.Println("\033[2K")
+	lineCount := len(strings.Split(text, "\n"))
+	for i := 0; i < lineCount; i++ {
+		fmt.Print("\033[1F")
+		fmt.Print("\033[2K")
+	}
+
 	timestampBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(timestampBytes, uint64(time.Now().Unix()))
 
 	addEntry(string(timestampBytes)+text, false)
+
+	fmt.Println("[Entry added to journal]")
 	return nil
 }
 
