@@ -12,6 +12,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli"
 )
@@ -19,6 +20,11 @@ import (
 type encryptedEntry struct {
 	key     []byte
 	message []byte
+}
+
+type entry struct {
+	timestamp uint64
+	message   string
 }
 
 const encryptedAesKeyLength = 512
@@ -55,7 +61,7 @@ func handleReadAction(c *cli.Context) error {
 		encryptedEntries = append(encryptedEntries, encryptedEntry{encryptedKey, encryptedMessage})
 	}
 
-	var decryptedEntries []string
+	var decryptedEntries []entry
 	for _, encEntry := range encryptedEntries {
 		aesKeySlice, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, rsaPrivateKey, encEntry.key, []byte{})
 		check(err)
@@ -80,14 +86,25 @@ func handleReadAction(c *cli.Context) error {
 				entryContent := make([]byte, entryLength)
 				_, err = r.Read(entryContent)
 				check(err)
-				decryptedEntries = append(decryptedEntries, string(entryContent))
+				timestamp := binary.LittleEndian.Uint64(entryContent[:8])
+				message := string(entryContent[8:])
+				decryptedEntries = append(decryptedEntries, entry{timestamp, message})
 			}
 		} else {
-			decryptedEntries = append(decryptedEntries, string(entryBytes))
+			timestamp := binary.LittleEndian.Uint64(entryBytes[:8])
+			message := string(entryBytes[8:])
+			decryptedEntries = append(decryptedEntries, entry{timestamp, message})
 		}
 	}
 
-	fmt.Println(strings.Join(decryptedEntries, "\n"))
+	for _, entry := range decryptedEntries {
+		timestamp := time.Unix(int64(entry.timestamp), 0)
+		check(err)
+		fmt.Println(timestamp.Format("2006-01-02 at 15:04:05"))
+		fmt.Println(entry.message)
+	}
+
+	// fmt.Println(strings.Join(decryptedEntries, "\n"))
 
 	if compress {
 		// wipe existing entries from disk
@@ -98,10 +115,14 @@ func handleReadAction(c *cli.Context) error {
 		var compressedEntry = make([]byte, 0)
 		for _, entry := range decryptedEntries {
 			lenBytes := make([]byte, 4)
-			binary.LittleEndian.PutUint32(lenBytes, uint32(len(entry)))
+			binary.LittleEndian.PutUint32(lenBytes, uint32(8+len(entry.message)))
 			compressedEntry = append(compressedEntry, lenBytes...)
 
-			compressedEntry = append(compressedEntry, []byte(entry)...)
+			timestampBytes := make([]byte, 8)
+			binary.LittleEndian.PutUint64(timestampBytes, entry.timestamp)
+			compressedEntry = append(compressedEntry, timestampBytes...)
+
+			compressedEntry = append(compressedEntry, []byte(entry.message)...)
 		}
 		// fmt.Println(decryptedEntries)
 		lenBytes := make([]byte, 4)

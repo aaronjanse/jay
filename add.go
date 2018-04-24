@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path"
+	"time"
 
 	"github.com/urfave/cli"
 )
@@ -21,7 +22,10 @@ func handleAddAction(c *cli.Context) error {
 		text += scanner.Text() + "\n"
 	}
 
-	addEntry(text, false)
+	timestampBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(timestampBytes, uint64(time.Now().Unix()))
+
+	addEntry(string(timestampBytes)+text, false)
 	return nil
 }
 
