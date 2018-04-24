@@ -124,7 +124,6 @@ func handleReadAction(c *cli.Context) error {
 
 			compressedEntry = append(compressedEntry, []byte(entry.message)...)
 		}
-		// fmt.Println(decryptedEntries)
 		lenBytes := make([]byte, 4)
 		binary.LittleEndian.PutUint32(lenBytes, 0)
 		compressedEntry = append(compressedEntry, lenBytes...)
