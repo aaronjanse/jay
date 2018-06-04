@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func handleAddAction(c *cli.Context) error {
@@ -24,11 +25,20 @@ func handleAddAction(c *cli.Context) error {
 		text += scanner.Text() + "\n"
 	}
 
-	fmt.Println("\033[2K")
-	lineCount := len(strings.Split(text, "\n"))
-	for i := 0; i < lineCount; i++ {
-		fmt.Print("\033[1F")
-		fmt.Print("\033[2K")
+	width, height, err := terminal.GetSize(0)
+	check(err)
+
+	lines := strings.Split(text, "\n")
+	numLinesToClear := len(lines) - 1
+	// for wrapped lines
+	for _, line := range lines {
+		numLinesToClear += int(float64(len(line)) / float64(width))
+	}
+
+	if numLinesToClear < height {
+		fmt.Print(strings.Repeat("\033[1F\033[2K", numLinesToClear))
+	} else {
+		fmt.Print("\033[3J\033[2J\033[3J\033[0;0H")
 	}
 
 	timestampBytes := make([]byte, 8)
